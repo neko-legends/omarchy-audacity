@@ -5,7 +5,7 @@
 pkgname=omarchy-audacity
 _name=Audacity
 pkgver=3.7.9
-pkgrel=1
+pkgrel=2
 pkgdesc='Audacity for Omarchy: move the window by its toolbars, no network features or startup dialogs'
 arch=(x86_64)
 url='https://github.com/neko-legends/omarchy-audacity'
@@ -29,7 +29,7 @@ source=(
 )
 sha512sums=('231bc76fd1b0e8dd46f294d1b410ee899bc0c285ee62d61a5c6b381d0568e5d0e567b40ab022678841f957aef9ba6fc690ea56c910b3bf4b533b50344651f9ad'
             'c20d80a8be65331e409cf261599e566431ef8a29c8da329066400a94d196a5b58acee24023edfa86c6574cfe768aa94a7972ba8a13253bd2f41a97554f6cbe3a'
-            'e9d2c952cc1bfd38883bda0ac1161ed374cdd5e0311734e0883a58922d1dbb125ffd190636e409fbcc13f32287fc328b91cac267654a6226f0aca40327b715cb'
+            '1bfaadf232e52341d0547277be3a144c3ac899e0f343ae22cb6eb82d5b5169f669ebb15e79bf0c4fb625b29de3704857a08882de872af4493a5d4d41b128ec51'
             'c726dd5c0af8b6812f88de30f8921b22f1d84e405e3c51d3056f1e6c7b7f78c4e839415a576923e916c8209044e5ab694aa868121f154e11bd3cc408576281bb')
 
 prepare() {

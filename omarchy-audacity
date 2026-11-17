@@ -1,6 +1,8 @@
 #!/bin/sh
-# Audacity's GTK interface runs through XWayland, as Arch's own launcher does:
-# on native Wayland its floating toolbars and some dialogs can't be placed.
-export GDK_BACKEND=x11
+# Audacity runs as a native Wayland app. Hyprland draws no title bars, and
+# only through Wayland does it honor an app's request to move its window
+# (xdg_toplevel.move), which is how dragging the toolbars or menu bar moves
+# Audacity. Under XWayland the same drag does nothing.
+export GDK_BACKEND=wayland
 export UBUNTU_MENUPROXY=0
 exec /opt/omarchy-audacity/bin/audacity "$@"

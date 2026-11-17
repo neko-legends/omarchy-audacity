@@ -9,6 +9,7 @@ build adds what Chromium and GNOME apps have through their header bars:
 - **Drag empty toolbar space** (anywhere on the toolbar area that isn't a
   button, slider or field) **to move the window.** Hyprland takes over the
   drag, so it snaps into tiles and moves across monitors like any other window.
+  This needs Audacity to run as a native Wayland app, which the launcher does.
 - **Drag the empty end of the menu bar** the same way. Menu titles still open
   their menus.
 - Toolbars are still rearranged by their dotted grabbers, as before.
@@ -48,7 +49,7 @@ you can keep both or remove the stock one. Both read the same settings
 | --- | --- |
 | `PKGBUILD` | Builds Audacity from its release tarball with Arch's options, networking and What's New off, into `/opt/omarchy-audacity` |
 | `0001-move-the-window-by-empty-toolbar-and-menu-bar-space.patch` | A press on empty toolbar space or the menu bar's empty end calls `gtk_window_begin_move_drag`, which hands the drag to Hyprland |
-| `omarchy-audacity` | Launcher: runs Audacity through XWayland (`GDK_BACKEND=x11`), as Arch's own launcher does |
+| `omarchy-audacity` | Launcher: runs Audacity as a native Wayland app (`GDK_BACKEND=wayland`). Arch's own launcher forces XWayland, where Hyprland ignores the move request and dragging does nothing |
 | `omarchy-audacity.desktop` | The app launcher entry |
 
 To move to a newer Audacity, change `pkgver` and the tarball checksum in
