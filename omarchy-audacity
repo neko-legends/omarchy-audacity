@@ -1,0 +1,6 @@
+#!/bin/sh
+# Audacity's GTK interface runs through XWayland, as Arch's own launcher does:
+# on native Wayland its floating toolbars and some dialogs can't be placed.
+export GDK_BACKEND=x11
+export UBUNTU_MENUPROXY=0
+exec /opt/omarchy-audacity/bin/audacity "$@"

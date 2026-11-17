@@ -1,0 +1,7 @@
+#!/bin/sh
+# Builds Audacity from its release source with the Omarchy patches and
+# installs it as a package, so "Omarchy Audacity" is in the app launcher.
+# Build files go to $BUILDDIR when it is set (the source tree is large).
+set -eu
+cd "$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
+makepkg -fsi "$@"

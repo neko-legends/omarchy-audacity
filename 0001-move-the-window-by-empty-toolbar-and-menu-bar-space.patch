@@ -1,0 +1,173 @@
+diff --git a/src/toolbars/ToolDock.h b/src/toolbars/ToolDock.h
+index eeb538d..fe127da 100644
+--- a/src/toolbars/ToolDock.h
++++ b/src/toolbars/ToolDock.h
+@@ -350,4 +350,15 @@ public:
+    DECLARE_EVENT_TABLE()
+ };
+ 
++class wxMenuBar;
++
++// Omarchy: Hyprland draws no title bars, so the window is moved by dragging
++// empty toolbar space or the empty end of the menu bar instead, the way
++// Chromium and GNOME apps are moved by their header bars. Both ask the window
++// manager to take over the drag (_NET_WM_MOVERESIZE on X11, xdg_toplevel.move
++// on Wayland), so the window snaps into tiles and across monitors like any
++// other.
++void BeginWindowMove(wxWindow *window);
++void EnableMenuBarWindowMove(wxMenuBar *menuBar);
++
+ #endif
+diff --git a/src/toolbars/ToolDock.cpp b/src/toolbars/ToolDock.cpp
+index ac1ccf1..4da33d0 100644
+--- a/src/toolbars/ToolDock.cpp
++++ b/src/toolbars/ToolDock.cpp
+@@ -40,6 +40,12 @@
+ 
+ #include <algorithm>
+ 
++#ifdef __WXGTK__
++#include <gtk/gtk.h>
++#include <wx/menu.h>
++#include <wx/toplevel.h>
++#endif
++
+ #include "AColor.h"
+ #include "AllThemeResources.h"
+ #include "ImageManipulation.h"
+@@ -953,7 +959,112 @@ void ToolDock::OnPaint( wxPaintEvent & WXUNUSED(event) )
+ 
+ void ToolDock::OnMouseEvents(wxMouseEvent &event)
+ {
++   // A press on the dock or on a toolbar's own background (not one of its
++   // buttons, sliders or the grabber, which are windows of their own) moves
++   // the window. Toolbars pass their mouse events up to here.
++   if (event.LeftDown() && !event.HasAnyModifiers()) {
++      auto source = dynamic_cast<wxWindow *>(event.GetEventObject());
++      if (source == this || dynamic_cast<ToolBar *>(source)) {
++         BeginWindowMove(this);
++         return;
++      }
++   }
++
+    // Do this hack so scrubber can detect mouse drags anywhere
+    event.ResumePropagation(wxEVENT_PROPAGATE_MAX);
+    event.Skip();
+ }
++
++#ifdef __WXGTK__
++namespace {
++
++void BeginGtkWindowMove(GtkWidget *widget, guint button, gint rootX, gint rootY, guint32 time)
++{
++   GtkWidget *top = widget ? gtk_widget_get_toplevel(widget) : nullptr;
++   if (top && GTK_IS_WINDOW(top))
++      gtk_window_begin_move_drag(GTK_WINDOW(top), button, rootX, rootY, time);
++}
++
++// True when the point, in the menu bar's coordinates, is on one of its menus.
++bool IsOnMenuTitle(GtkWidget *bar, gdouble x, gdouble y)
++{
++   bool onItem = false;
++   GList *items = gtk_container_get_children(GTK_CONTAINER(bar));
++   for (GList *item = items; item; item = item->next) {
++      GtkWidget *child = GTK_WIDGET(item->data);
++      if (!gtk_widget_get_visible(child))
++         continue;
++      gint cx = 0, cy = 0;
++      if (gtk_widget_translate_coordinates(bar, child, (gint)x, (gint)y, &cx, &cy)
++          && cx >= 0 && cy >= 0
++          && cx < gtk_widget_get_allocated_width(child)
++          && cy < gtk_widget_get_allocated_height(child)) {
++         onItem = true;
++         break;
++      }
++   }
++   g_list_free(items);
++   return onItem;
++}
++
++gboolean OnMenuBarButtonPress(GtkWidget *bar, GdkEventButton *event, gpointer)
++{
++   // Menu titles open as usual; while a menu is open the press belongs to it.
++   if (event->type != GDK_BUTTON_PRESS || event->button != 1
++       || gtk_menu_shell_get_selected_item(GTK_MENU_SHELL(bar))
++       || IsOnMenuTitle(bar, event->x, event->y))
++      return FALSE;
++   BeginGtkWindowMove(bar, event->button, (gint)event->x_root, (gint)event->y_root, event->time);
++   return TRUE;
++}
++
++void FindMenuBars(GtkWidget *widget, gpointer)
++{
++   if (GTK_IS_MENU_BAR(widget)) {
++      g_signal_connect(widget, "button-press-event", G_CALLBACK(OnMenuBarButtonPress), nullptr);
++      return;
++   }
++   if (GTK_IS_CONTAINER(widget))
++      gtk_container_forall(GTK_CONTAINER(widget), FindMenuBars, nullptr);
++}
++
++}
++#endif
++
++void BeginWindowMove(wxWindow *window)
++{
++#ifdef __WXGTK__
++   if (!window)
++      return;
++   if (window->HasCapture())
++      window->ReleaseMouse();
++
++   guint button = 1;
++   gdouble rootX = 0, rootY = 0;
++   guint32 time = gtk_get_current_event_time();
++   GdkEvent *current = gtk_get_current_event();
++   if (current && gdk_event_get_root_coords(current, &rootX, &rootY)) {
++      gdk_event_get_button(current, &button);
++   } else {
++      const wxPoint pointer = wxGetMousePosition();
++      rootX = pointer.x;
++      rootY = pointer.y;
++   }
++   if (current)
++      gdk_event_free(current);
++
++   BeginGtkWindowMove(window->GetHandle(), button, (gint)rootX, (gint)rootY, time);
++#else
++   (void)window;
++#endif
++}
++
++void EnableMenuBarWindowMove(wxMenuBar *menuBar)
++{
++#ifdef __WXGTK__
++   if (menuBar && menuBar->GetHandle())
++      FindMenuBars(menuBar->GetHandle(), nullptr);
++#else
++   (void)menuBar;
++#endif
++}
+diff --git a/src/MenuCreator.cpp b/src/MenuCreator.cpp
+index c62358a..9c9a019 100644
+--- a/src/MenuCreator.cpp
++++ b/src/MenuCreator.cpp
+@@ -32,6 +32,7 @@
+ #include "JournalRegistry.h"
+ #include "Registry.h"
+ #include "ProjectWindows.h"
++#include "toolbars/ToolDock.h"
+ #include "AudacityMessageBox.h"
+ 
+ #include <wx/evtloop.h>
+@@ -139,7 +140,9 @@ struct MenuItemVisitor final : CommandManager::Populator {
+ 
+       MenuRegistry::Visit(*this, mProject);
+ 
+-      GetProjectFrame(mProject).SetMenuBar(menubar.release());
++      auto bar = menubar.release();
++      GetProjectFrame(mProject).SetMenuBar(bar);
++      EnableMenuBarWindowMove(bar);
+    }
+ 
+    ~MenuItemVisitor() override;
