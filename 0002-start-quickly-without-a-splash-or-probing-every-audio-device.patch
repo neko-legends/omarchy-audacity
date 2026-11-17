@@ -1,0 +1,35 @@
+diff --git a/libraries/lib-audio-devices/DeviceManager.cpp b/libraries/lib-audio-devices/DeviceManager.cpp
+index 6c08ec4..88b72b8 100644
+--- a/libraries/lib-audio-devices/DeviceManager.cpp
++++ b/libraries/lib-audio-devices/DeviceManager.cpp
+@@ -257,7 +257,14 @@ static void AddSources(int deviceIndex, int rate, std::vector<DeviceSourceMap> *
+    // portaudio indices)
+    // Also, for mapper devices we don't want to keep any sources, so check for it here
+    // Also, ASIO devices must not be opened during a scan
+-   if (isInput && !DeviceManager::IsAsioDevice(deviceIndex) &&
++   // Omarchy: opening every input device and reading its mixer through
++   // PortMixer took about 8 s at every start with a few USB and HDMI cards
++   // and PipeWire's ALSA devices, all on the main thread, so Hyprland offered
++   // to terminate the app. Input "sources" only matter on old cards with a
++   // capture selector, and the input level control opens the mixer of the
++   // stream in use anyway, so devices are listed without being opened.
++   constexpr bool probeInputSources = false;
++   if (probeInputSources && isInput && !DeviceManager::IsAsioDevice(deviceIndex) &&
+        !IsInputDeviceAMapperDevice(info)) {
+       if (info)
+          parameters.suggestedLatency = info->defaultLowInputLatency;
+diff --git a/src/AudacityApp.cpp b/src/AudacityApp.cpp
+index 5719e1f..ca06ee2 100644
+--- a/src/AudacityApp.cpp
++++ b/src/AudacityApp.cpp
+@@ -1279,6 +1279,10 @@ AudacityApp::~AudacityApp()
+ }
+ 
+ void AudacityApp::ShowSplashScreen() {
++   // Omarchy: no splash. Startup is quick now, and the splash was a separate
++   // floating window that sat over the desktop until the main window came.
++   if (true)
++      return;
+    // Bug 718: Position splash screen on same screen
+    // as where Audacity project will appear.
+    wxRect wndRect;

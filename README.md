@@ -14,13 +14,28 @@ build adds what Chromium and GNOME apps have through their header bars:
   their menus.
 - Toolbars are still rearranged by their dotted grabbers, as before.
 
+It starts about **10× faster, with no splash screen**:
+
+| | Stock 3.7.9 | omarchy-audacity |
+| --- | --- | --- |
+| Launch to main window | 9.5 s, behind an "Audacity is starting up..." splash | 0.9 s, straight to the window |
+
+Measured on Omarchy with five sound cards (two NVIDIA HDMI, three USB) under
+PipeWire. At every start, stock Audacity opens each of the 40-odd input
+devices PortAudio lists and reads its mixer through PortMixer, thousands of
+ALSA control reads, all on the main thread. That is the lag behind the splash,
+and long enough for Hyprland to offer to terminate the window. This build
+lists the devices without opening them. Those per-device "sources" only matter
+for old cards with a capture selector, and the input level control still reads
+the mixer of the device you record from.
+
 It also leaves out everything that talks to the internet or interrupts you:
 
 - No update checks, crash reports, error reporting (Sentry), audio.com upload
   or sign-in, MuseHub, or `audacity://` link handling. They are not compiled
   in, and Audacity makes no network connections. The only socket is one on
   127.0.0.1 that lets opening a file go to the window that's already running.
-- No What's New dialog at startup.
+- No What's New dialog or splash screen at startup.
 
 Help links still open in your browser when you click them.
 
@@ -49,6 +64,7 @@ you can keep both or remove the stock one. Both read the same settings
 | --- | --- |
 | `PKGBUILD` | Builds Audacity from its release tarball with Arch's options, networking and What's New off, into `/opt/omarchy-audacity` |
 | `0001-move-the-window-by-empty-toolbar-and-menu-bar-space.patch` | A press on empty toolbar space or the menu bar's empty end calls `gtk_window_begin_move_drag`, which hands the drag to Hyprland |
+| `0002-start-quickly-without-a-splash-or-probing-every-audio-device.patch` | Skips opening every input device and its mixer at startup, and the splash screen |
 | `omarchy-audacity` | Launcher: runs Audacity as a native Wayland app (`GDK_BACKEND=wayland`). Arch's own launcher forces XWayland, where Hyprland ignores the move request and dragging does nothing |
 | `omarchy-audacity.desktop` | The app launcher entry |
 

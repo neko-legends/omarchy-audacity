@@ -5,8 +5,8 @@
 pkgname=omarchy-audacity
 _name=Audacity
 pkgver=3.7.9
-pkgrel=2
-pkgdesc='Audacity for Omarchy: move the window by its toolbars, no network features or startup dialogs'
+pkgrel=3
+pkgdesc='Audacity for Omarchy: move the window by its toolbars, quick start, no splash, network features or startup dialogs'
 arch=(x86_64)
 url='https://github.com/neko-legends/omarchy-audacity'
 license=(GPL-3.0-or-later)
@@ -24,17 +24,20 @@ optdepends=('ffmpeg: for additional import/export capabilities')
 source=(
   "https://github.com/audacity/audacity/archive/refs/tags/$_name-$pkgver.tar.gz"
   0001-move-the-window-by-empty-toolbar-and-menu-bar-space.patch
+  0002-start-quickly-without-a-splash-or-probing-every-audio-device.patch
   omarchy-audacity
   omarchy-audacity.desktop
 )
 sha512sums=('231bc76fd1b0e8dd46f294d1b410ee899bc0c285ee62d61a5c6b381d0568e5d0e567b40ab022678841f957aef9ba6fc690ea56c910b3bf4b533b50344651f9ad'
             'c20d80a8be65331e409cf261599e566431ef8a29c8da329066400a94d196a5b58acee24023edfa86c6574cfe768aa94a7972ba8a13253bd2f41a97554f6cbe3a'
+            'ab66a4e73b73f2867188099ee609860a387c0572b433057876b47dd21b526d899e656a0c838065195ffeaacf820f2eda11c6ebb9c625c44740ff8b17315239db'
             '1bfaadf232e52341d0547277be3a144c3ac899e0f343ae22cb6eb82d5b5169f669ebb15e79bf0c4fb625b29de3704857a08882de872af4493a5d4d41b128ec51'
             'c726dd5c0af8b6812f88de30f8921b22f1d84e405e3c51d3056f1e6c7b7f78c4e839415a576923e916c8209044e5ab694aa868121f154e11bd3cc408576281bb')
 
 prepare() {
   cd "audacity-$_name-$pkgver"
   patch --forward --strip=1 --input="$srcdir/0001-move-the-window-by-empty-toolbar-and-menu-bar-space.patch"
+  patch --forward --strip=1 --input="$srcdir/0002-start-quickly-without-a-splash-or-probing-every-audio-device.patch"
 }
 
 build() {
