@@ -1,0 +1,9 @@
+#!/bin/sh
+# Starts Omarchy Audacity from wherever this folder was unpacked (the zip the
+# Neko Legends Control Center installs). The packaged app uses
+# /usr/bin/omarchy-audacity instead. It runs as a native Wayland app so
+# Hyprland honors dragging the window by its toolbars.
+here="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+export GDK_BACKEND=wayland
+export UBUNTU_MENUPROXY=0
+exec "$here/bin/audacity" "$@"

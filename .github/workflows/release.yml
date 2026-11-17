@@ -1,0 +1,58 @@
+name: Release
+
+# Pushing a v* tag builds the package on Arch, the way Omarchy has it, and
+# attaches omarchy-audacity-linux-x86_64.zip (the app folder with a launcher
+# that runs from wherever it is unpacked) to the tag's release. The Neko
+# Legends Control Center downloads and launches that zip.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    container: archlinux:base-devel
+    timeout-minutes: 300
+    steps:
+      - name: Install build dependencies
+        run: |
+          pacman -Syu --noconfirm --needed git zip github-cli
+
+      - uses: actions/checkout@v4
+
+      - name: Install the PKGBUILD's dependencies
+        run: |
+          deps=$(bash -c 'source ./PKGBUILD; echo "${depends[@]} ${makedepends[@]}"')
+          pacman -S --noconfirm --needed $deps
+
+      - name: Build
+        run: |
+          useradd -m builder
+          chown -R builder "$GITHUB_WORKSPACE"
+          su builder -c "cd '$GITHUB_WORKSPACE' && MAKEFLAGS=-j$(nproc) makepkg --noconfirm --nodeps"
+
+      - name: Package
+        run: |
+          root=pkg/omarchy-audacity/opt/omarchy-audacity
+          mkdir -p dist/omarchy-audacity
+          cp -a "$root"/. dist/omarchy-audacity/
+          install -Dm755 omarchy-audacity-portable dist/omarchy-audacity/omarchy-audacity-portable
+          install -Dm644 LICENSE dist/omarchy-audacity/LICENSE
+          install -Dm644 LINUX-README.txt dist/omarchy-audacity/README.txt
+          (cd dist && zip -qry ../omarchy-audacity-linux-x86_64.zip omarchy-audacity)
+
+      - name: Attach to the release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          tag="${GITHUB_REF_NAME}"
+          if ! gh release view "$tag" >/dev/null 2>&1; then
+            gh release create "$tag" --title "Omarchy Audacity ${tag#v}" --generate-notes
+          fi
+          gh release upload "$tag" omarchy-audacity-linux-x86_64.zip --clobber

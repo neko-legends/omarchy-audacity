@@ -5,7 +5,7 @@
 pkgname=omarchy-audacity
 _name=Audacity
 pkgver=3.7.9
-pkgrel=3
+pkgrel=4
 pkgdesc='Audacity for Omarchy: move the window by its toolbars, quick start, no splash, network features or startup dialogs'
 arch=(x86_64)
 url='https://github.com/neko-legends/omarchy-audacity'
@@ -74,6 +74,13 @@ build() {
 
 package() {
   DESTDIR="$pkgdir" cmake --install build
+
+  # A library left empty by an interrupted or reused build makes Audacity
+  # fail to start, so refuse to package one.
+  if find "$pkgdir/opt/omarchy-audacity" -type f -name '*.so' -empty | grep .; then
+    echo "Empty libraries above; rebuild with makepkg -C" >&2
+    return 1
+  fi
 
   # It lives in /opt beside the stock audacity package; only the launcher,
   # its menu entry, icons and project file type go in the system folders.

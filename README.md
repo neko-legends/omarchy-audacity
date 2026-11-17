@@ -54,6 +54,13 @@ so set `BUILDDIR` to put it on a roomy disk), and installs the
 `omarchy-audacity` package. **Omarchy Audacity** is then in the app launcher
 (Super+Space), and `omarchy-audacity` starts it from a terminal.
 
+Or get it from the [Neko Legends Control Center](https://github.com/neko-legends/neko-legends-control-center),
+which downloads `omarchy-audacity-linux-x86_64.zip` from the latest
+[release](https://github.com/neko-legends/omarchy-audacity/releases) and runs
+`omarchy-audacity-portable` from wherever it unpacks it. It uses the same system
+libraries as Arch's `audacity` package. Pushing a `v*` tag builds the package on
+Arch and attaches that zip (`.github/workflows/release.yml`).
+
 It installs to `/opt/omarchy-audacity` beside the stock `audacity` package, so
 you can keep both or remove the stock one. Both read the same settings
 (`~/.config/audacity`).
